@@ -65,9 +65,6 @@
                                 <includedFeatureDef>
                                     org.wso2.carbon.identity.framework:org.wso2.carbon.directory.service.mgr.server.feature
                                 </includedFeatureDef>
-                                <includedFeatureDef>
-                                    org.wso2.carbon.identity.framework:org.wso2.carbon.directory.service.mgr.ui.feature
-                                </includedFeatureDef>
                             </includedFeatures>
                         </configuration>
                     </execution>

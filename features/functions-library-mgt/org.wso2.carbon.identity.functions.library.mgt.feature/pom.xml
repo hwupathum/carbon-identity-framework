@@ -63,9 +63,6 @@
                                 <includedFeatureDef>
                                     org.wso2.carbon.identity.framework:org.wso2.carbon.identity.functions.library.mgt.server.feature
                                 </includedFeatureDef>
-                                <includedFeatureDef>
-                                    org.wso2.carbon.identity.framework:org.wso2.carbon.identity.functions.library.mgt.ui.feature
-                                </includedFeatureDef>
                             </includedFeatures>
                         </configuration>
                     </execution>

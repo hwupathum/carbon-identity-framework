@@ -67,9 +67,6 @@
                                 <includedFeatureDef>
                                     org.wso2.carbon.identity.framework:org.wso2.carbon.user.mgt.server.feature:${project.version}
                                 </includedFeatureDef>
-                                <includedFeatureDef>
-                                    org.wso2.carbon.identity.framework:org.wso2.carbon.user.mgt.ui.feature:${project.version}
-                                </includedFeatureDef>
                             </includedFeatures>
                         </configuration>
                     </execution>

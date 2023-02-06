@@ -68,9 +68,6 @@
                                 <includedFeatureDef>
                                     org.wso2.carbon.identity.framework:org.wso2.carbon.identity.user.registration.server.feature
                                 </includedFeatureDef>
-                                <includedFeatureDef>
-                                    org.wso2.carbon.identity.framework:org.wso2.carbon.identity.user.registration.ui.feature
-                                </includedFeatureDef>
                             </includedFeatures>
                         </configuration>
                     </execution>

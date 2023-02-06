@@ -64,8 +64,6 @@
                             <includedFeatures>
                                 <includedFeatureDef>org.wso2.carbon.identity.framework:org.wso2.carbon.claim.mgt.server.feature
                                 </includedFeatureDef>
-                                <includedFeatureDef>org.wso2.carbon.identity.framework:org.wso2.carbon.claim.mgt.ui.feature
-                                </includedFeatureDef>
                             </includedFeatures>
                         </configuration>
                     </execution>
