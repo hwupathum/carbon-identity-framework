@@ -53,7 +53,7 @@ jobs:
 
           echo "Get latest merged PR details"
           echo "=========================================================="
-          LATEST_PR_SHA=bd991d3e28863393cee1ab05f0100fa8a117f569
+          LATEST_PR_SHA=b30dd18094005951eccd3ff603bad27dd3560612
           MERGED_PR=$(curl -s "https://api.github.com/search/issues?q=${LATEST_PR_SHA}+type:pr+is:merged+base:master")
           PR_NUMBER=$(echo $MERGED_PR | jq -r '.items[0].number')
           PR_URL=$(echo $MERGED_PR | jq -r '.items[0].html_url')
@@ -82,7 +82,11 @@ jobs:
           echo "Cherry-pick Commits"
           echo "=========================================================="
           git config --global user.name ${GIT_USERNAME}
-          git cherry-pick b30dd180940
+          for commit in $PR_COMMITS_SHA
+          do
+            git cherry-pick $commit
+          done
+          echo ""
 
           echo 'Push Changes'
           echo "=========================================================="
