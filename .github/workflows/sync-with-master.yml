@@ -82,11 +82,7 @@ jobs:
           echo "Cherry-pick Commits"
           echo "=========================================================="
           git config --global user.name ${GIT_USERNAME}
-          for commit in $PR_COMMITS_SHA
-          do
-            git cherry-pick $commit || true
-          done
-          echo ""
+          git cherry-pick b30dd180940
 
           echo 'Push Changes'
           echo "=========================================================="
