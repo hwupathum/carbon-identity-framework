@@ -7,7 +7,7 @@ name: PR Builder
 
 on:
   pull_request:
-    branches: [main, master]
+    branches: [main, master, 6.0.x]
   workflow_dispatch:
 
 env:
