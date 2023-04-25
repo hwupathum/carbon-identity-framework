@@ -92,7 +92,7 @@ import static org.wso2.carbon.identity.configuration.mgt.core.util.Configuration
 /**
  * Resource Manager service implementation.
  */
-public class ConfigurationManagerImpl implements ConfigurationManager {
+public ConfigurationManagerImpl implements ConfigurationManager {
 
     private static final Log log = LogFactory.getLog(ConfigurationManagerImpl.class);
     private List<ConfigurationDAO> configurationDAOS;
