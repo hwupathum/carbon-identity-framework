@@ -53,7 +53,7 @@ jobs:
 
           echo "Get latest merged PR details"
           echo "=========================================================="
-          LATEST_PR_SHA=28bd166439e
+          LATEST_PR_SHA=5dedb998443be9af424cdd1dfc315d5d5f4e71fa
           MERGED_PR=$(curl -s "https://api.github.com/search/issues?q=${LATEST_PR_SHA}+type:pr+is:merged+base:master")
           PR_NUMBER=$(echo $MERGED_PR | jq -r '.items[0].number')
           PR_URL=$(echo $MERGED_PR | jq -r '.items[0].html_url')
