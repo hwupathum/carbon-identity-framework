@@ -65,6 +65,13 @@
             </UserSessionMapping>
         </SessionDataPersist>
     </JDBCPersistenceManager>
+    <RegistryDataPersistenceManager>
+        <DataSource>
+            <!-- Include a data source name (jndiConfigName) from the set of data
+                sources defined in master-datasources.xml -->
+            <Name>{{shared_registry.data_source}}</Name>
+        </DataSource>
+    </RegistryDataPersistenceManager>
 
     <!-- Time configurations are in minutes -->
     <TimeConfig>

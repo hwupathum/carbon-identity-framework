@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.persistence.JDBCPersistenceManager;
+import org.wso2.carbon.identity.core.persistence.RegistryDataPersistenceManager;
 import org.wso2.carbon.identity.core.persistence.UmPersistenceManager;
 
 import java.sql.Connection;
@@ -140,6 +141,21 @@ public class IdentityDatabaseUtil {
     public static void commitTransaction(Connection dbConnection) {
 
         JDBCPersistenceManager.getInstance().commitTransaction(dbConnection);
+    }
+
+    public static Connection getGovernanceDBConnection(boolean shouldApplyTransaction) throws IdentityRuntimeException {
+
+        return RegistryDataPersistenceManager.getInstance().getDBConnection(shouldApplyTransaction);
+    }
+
+    public static void commitGovernanceDBTransaction(Connection dbConnection) {
+
+        RegistryDataPersistenceManager.getInstance().commitTransaction(dbConnection);
+    }
+
+    public static void rollbackGovernanceDBTransaction(Connection dbConnection) {
+
+        RegistryDataPersistenceManager.getInstance().rollbackTransaction(dbConnection);
     }
 
     /**
