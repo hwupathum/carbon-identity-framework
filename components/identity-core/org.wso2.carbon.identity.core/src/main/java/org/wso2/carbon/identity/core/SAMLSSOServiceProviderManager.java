@@ -18,13 +18,17 @@
 
 package org.wso2.carbon.identity.core;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.dao.SAMLSSOServiceProviderDAO;
+import org.wso2.carbon.identity.core.dao.SAMLSSOServiceProviderDAOImpl;
+import org.wso2.carbon.identity.core.dao.SAMLSSOServiceProviderMigrationDAOImpl;
 import org.wso2.carbon.identity.core.dao.SAMLSSOServiceProviderRegistryDAOImpl;
 import org.wso2.carbon.identity.core.model.SAMLSSOServiceProviderDO;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.registry.api.RegistryException;
 import org.wso2.carbon.registry.core.Registry;
 
@@ -36,6 +40,8 @@ public class SAMLSSOServiceProviderManager {
 
     private static final Log LOG = LogFactory.getLog(SAMLSSOServiceProviderManager.class);
 
+    private static final String SAML_CONFIGS_LOCATION_CONFIG = "RegistryDataStoreLocation.SAMLConfigs";
+
     /**
      * Build the SAML service provider.
      *
@@ -44,8 +50,19 @@ public class SAMLSSOServiceProviderManager {
      */
     private SAMLSSOServiceProviderDAO buildSAMLSSOProvider(int tenantId) throws RegistryException {
 
-        Registry registry = IdentityTenantUtil.getRegistryService().getConfigSystemRegistry(tenantId);
-        return new SAMLSSOServiceProviderRegistryDAOImpl(registry);
+        String samlConfigsDatabase = IdentityUtil.getProperty(SAML_CONFIGS_LOCATION_CONFIG);
+        if (StringUtils.isBlank(samlConfigsDatabase)) {
+            samlConfigsDatabase = "database";
+        }
+        switch (samlConfigsDatabase) {
+            case "database":
+                return new SAMLSSOServiceProviderDAOImpl(tenantId);
+            case "on_migration":
+                return new SAMLSSOServiceProviderMigrationDAOImpl(tenantId);
+            default:
+                Registry registry = IdentityTenantUtil.getRegistryService().getConfigSystemRegistry(tenantId);
+                return new SAMLSSOServiceProviderRegistryDAOImpl(registry);
+        }
     }
 
 
