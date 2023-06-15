@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.dao.SAMLSSOServiceProviderDAO;
+import org.wso2.carbon.identity.core.dao.SAMLSSOServiceProviderRegistryDAOImpl;
 import org.wso2.carbon.identity.core.model.SAMLSSOServiceProviderDO;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.registry.api.RegistryException;
@@ -35,6 +36,10 @@ public class SAMLSSOServiceProviderManager {
 
     private static final Log LOG = LogFactory.getLog(SAMLSSOServiceProviderManager.class);
 
+    private static final String SAML_CONFIGS_LOCATION_CONFIG = "RegistryDataStoreLocation.SAMLConfigs";
+    private static final String DATABASE = "database";
+    private static final String ON_MIGRATION = "on_migration";
+
     /**
      * Build the SAML service provider.
      *
@@ -43,8 +48,15 @@ public class SAMLSSOServiceProviderManager {
      */
     private SAMLSSOServiceProviderDAO buildSAMLSSOProvider(int tenantId) throws RegistryException {
 
-        Registry registry = IdentityTenantUtil.getRegistryService().getConfigSystemRegistry(tenantId);
-        return new SAMLSSOServiceProviderDAO(registry);
+        String samlConfigsDatabase = IdentityUtil.getProperty(SAML_CONFIGS_LOCATION_CONFIG);
+        if (DATABASE.equals(samlConfigsDatabase)) {
+            return new SAMLSSOServiceProviderDAOImpl(tenantId);
+        } else if (ON_MIGRATION.equals(samlConfigsDatabase)) {
+            return new SAMLSSOServiceProviderMigrationDAOImpl(tenantId);
+        } else {
+            Registry registry = IdentityTenantUtil.getRegistryService().getConfigSystemRegistry(tenantId);
+            return new SAMLSSOServiceProviderRegistryDAOImpl(registry);
+        }
     }
 
 

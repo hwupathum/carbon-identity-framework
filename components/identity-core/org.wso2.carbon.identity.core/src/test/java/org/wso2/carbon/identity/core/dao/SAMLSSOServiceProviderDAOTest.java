@@ -71,7 +71,7 @@ import static org.testng.Assert.fail;
 @PrepareForTest({Transaction.class, IdentityTenantUtil.class})
 public class SAMLSSOServiceProviderDAOTest extends PowerMockTestCase {
 
-    private SAMLSSOServiceProviderDAO objUnderTest;
+    private SAMLSSOServiceProviderRegistryDAOImpl objUnderTest;
     private boolean transactionStarted = false;
 
     private Registry mockRegistry;
@@ -102,7 +102,7 @@ public class SAMLSSOServiceProviderDAOTest extends PowerMockTestCase {
             }
         }).when(mockRegistry).beginTransaction();
 
-        objUnderTest = new SAMLSSOServiceProviderDAO(mockRegistry);
+        objUnderTest = new SAMLSSOServiceProviderRegistryDAOImpl(mockRegistry);
         when(mockRegistry.newResource()).thenReturn(new ResourceImpl());
     }
 
