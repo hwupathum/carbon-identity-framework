@@ -267,7 +267,7 @@ public class SAMLSSOServiceProviderDAOImpl implements SAMLSSOServiceProviderDAO 
             statement.setString(2, tenantUUID);
 
             statement.setString(3, serviceProviderDO.getIssuer());
-            statement.setString(4, serviceProviderDO.getAssertionConsumerUrlList().toString());
+            statement.setString(4, String.join(",", serviceProviderDO.getAssertionConsumerUrlList()));
             statement.setString(5, serviceProviderDO.getDefaultAssertionConsumerUrl());
             statement.setString(6, serviceProviderDO.getCertAlias());
             statement.setString(7, serviceProviderDO.getLoginPageURL());
@@ -296,14 +296,14 @@ public class SAMLSSOServiceProviderDAOImpl implements SAMLSSOServiceProviderDAO 
             statement.setBoolean(22, serviceProviderDO.isEnableSAML2ArtifactBinding());
             statement.setBoolean(23, serviceProviderDO.isDoSignAssertions());
             statement.setBoolean(24, serviceProviderDO.isSamlECP());
-            statement.setString(25, serviceProviderDO.getRequestedClaimsList().toString());
+            statement.setString(25, String.join(",",serviceProviderDO.getRequestedClaimsList()));
             statement.setString(26, serviceProviderDO.getAttributeConsumingServiceIndex());
-            statement.setString(27, serviceProviderDO.getRequestedAudiencesList().toString());
-            statement.setString(28, serviceProviderDO.getRequestedRecipientsList().toString());
+            statement.setString(27, String.join(",",serviceProviderDO.getRequestedAudiencesList()));
+            statement.setString(28, String.join(",",serviceProviderDO.getRequestedRecipientsList()));
             statement.setBoolean(29, serviceProviderDO.isEnableAttributesByDefault());
             statement.setBoolean(30, serviceProviderDO.isIdPInitSSOEnabled());
             statement.setBoolean(31, serviceProviderDO.isIdPInitSLOEnabled());
-            statement.setString(32, serviceProviderDO.getIdpInitSLOReturnToURLList().toString());
+            statement.setString(32, String.join(",",serviceProviderDO.getIdpInitSLOReturnToURLList()));
             statement.setBoolean(33, serviceProviderDO.isDoEnableEncryptedAssertion());
             statement.setBoolean(34, serviceProviderDO.isDoValidateSignatureInRequests());
             statement.setBoolean(35, serviceProviderDO.isDoValidateSignatureInArtifactResolve());
