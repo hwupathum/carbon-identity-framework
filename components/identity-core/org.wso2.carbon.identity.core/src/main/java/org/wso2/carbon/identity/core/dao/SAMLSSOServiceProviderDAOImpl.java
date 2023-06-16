@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.core.dao;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -267,7 +268,7 @@ public class SAMLSSOServiceProviderDAOImpl implements SAMLSSOServiceProviderDAO 
             statement.setString(2, tenantUUID);
 
             statement.setString(3, serviceProviderDO.getIssuer());
-            statement.setString(4, String.join(",", serviceProviderDO.getAssertionConsumerUrlList()));
+            statement.setString(4, listToString(serviceProviderDO.getAssertionConsumerUrlList()));
             statement.setString(5, serviceProviderDO.getDefaultAssertionConsumerUrl());
             statement.setString(6, serviceProviderDO.getCertAlias());
             statement.setString(7, serviceProviderDO.getLoginPageURL());
@@ -286,29 +287,48 @@ public class SAMLSSOServiceProviderDAOImpl implements SAMLSSOServiceProviderDAO 
             }
 
             statement.setBoolean(14, serviceProviderDO.isDoSingleLogout());
-            statement.setString(15, serviceProviderDO.getSloResponseURL());
-            statement.setString(16, serviceProviderDO.getSloRequestURL());
-            statement.setBoolean(17, serviceProviderDO.isDoFrontChannelLogout());
-            statement.setString(18, serviceProviderDO.getFrontChannelLogoutBinding());
+
+            if (serviceProviderDO.isDoSingleLogout()) {
+                statement.setString(15, getStringIfNotBlank(serviceProviderDO.getSloResponseURL()));
+                statement.setString(16, getStringIfNotBlank(serviceProviderDO.getSloRequestURL()));
+                // Create doFrontChannelLogout property in the registry.
+                statement.setBoolean(17, serviceProviderDO.isDoFrontChannelLogout());
+                if (serviceProviderDO.isDoFrontChannelLogout()) {
+                    // Create frontChannelLogoutMethod property in the registry.
+                    statement.setString(18, serviceProviderDO.getFrontChannelLogoutBinding());
+                } else {
+                    statement.setString(18, null);
+                }
+            } else {
+                statement.setString(15, null);
+                statement.setString(16, null);
+                statement.setBoolean(17, false);
+                statement.setString(18, null);
+            }
+
             statement.setBoolean(19, serviceProviderDO.isDoSignResponse());
             statement.setBoolean(20, serviceProviderDO.isAssertionQueryRequestProfileEnabled());
             statement.setString(21, serviceProviderDO.getSupportedAssertionQueryRequestTypes());
             statement.setBoolean(22, serviceProviderDO.isEnableSAML2ArtifactBinding());
             statement.setBoolean(23, serviceProviderDO.isDoSignAssertions());
             statement.setBoolean(24, serviceProviderDO.isSamlECP());
-            statement.setString(25, String.join(",",serviceProviderDO.getRequestedClaimsList()));
-            statement.setString(26, serviceProviderDO.getAttributeConsumingServiceIndex());
-            statement.setString(27, String.join(",",serviceProviderDO.getRequestedAudiencesList()));
-            statement.setString(28, String.join(",",serviceProviderDO.getRequestedRecipientsList()));
+            statement.setString(25, listToString(serviceProviderDO.getRequestedClaimsList()));
+            statement.setString(26, getStringIfNotBlank(serviceProviderDO.getAttributeConsumingServiceIndex()));
+            statement.setString(27, listToString(serviceProviderDO.getRequestedAudiencesList()));
+            statement.setString(28, listToString(serviceProviderDO.getRequestedRecipientsList()));
             statement.setBoolean(29, serviceProviderDO.isEnableAttributesByDefault());
             statement.setBoolean(30, serviceProviderDO.isIdPInitSSOEnabled());
             statement.setBoolean(31, serviceProviderDO.isIdPInitSLOEnabled());
-            statement.setString(32, String.join(",",serviceProviderDO.getIdpInitSLOReturnToURLList()));
+            if (serviceProviderDO.isIdPInitSLOEnabled()) {
+                statement.setString(32, listToString(serviceProviderDO.getIdpInitSLOReturnToURLList()));
+            } else {
+                statement.setString(32, null);
+            }
             statement.setBoolean(33, serviceProviderDO.isDoEnableEncryptedAssertion());
             statement.setBoolean(34, serviceProviderDO.isDoValidateSignatureInRequests());
             statement.setBoolean(35, serviceProviderDO.isDoValidateSignatureInArtifactResolve());
-            statement.setString(36, serviceProviderDO.getIssuerQualifier());
-            statement.setString(37, serviceProviderDO.getIdpEntityIDAlias());
+            statement.setString(36, getStringIfNotBlank(serviceProviderDO.getIssuerQualifier()));
+            statement.setString(37, getStringIfNotBlank(serviceProviderDO.getIdpEntityIDAlias()));
 
             statement.executeUpdate();
         }
@@ -324,47 +344,7 @@ public class SAMLSSOServiceProviderDAOImpl implements SAMLSSOServiceProviderDAO 
             statement.setString(2, tenantUUID);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    serviceProviderDO = new SAMLSSOServiceProviderDO();
-                    serviceProviderDO.setIssuer(resultSet.getString(1));
-                    serviceProviderDO.setAssertionConsumerUrls(
-                            Arrays.asList(resultSet.getString(2).split(",")));
-                    serviceProviderDO.setDefaultAssertionConsumerUrl(resultSet.getString(3));
-                    serviceProviderDO.setCertAlias(resultSet.getString(4));
-                    serviceProviderDO.setLoginPageURL(resultSet.getString(5));
-                    serviceProviderDO.setNameIDFormat(resultSet.getString(6));
-                    serviceProviderDO.setSigningAlgorithmUri(resultSet.getString(7));
-                    serviceProviderDO.setDigestAlgorithmUri(resultSet.getString(8));
-                    serviceProviderDO.setAssertionEncryptionAlgorithmUri(resultSet.getString(9));
-                    serviceProviderDO.setKeyEncryptionAlgorithmUri(resultSet.getString(10));
-                    serviceProviderDO.setNameIdClaimUri(resultSet.getString(11));
-                    serviceProviderDO.setDoSingleLogout(resultSet.getBoolean(12));
-                    serviceProviderDO.setSloResponseURL(resultSet.getString(13));
-                    serviceProviderDO.setSloRequestURL(resultSet.getString(14));
-                    serviceProviderDO.setDoFrontChannelLogout(resultSet.getBoolean(15));
-                    serviceProviderDO.setFrontChannelLogoutBinding(resultSet.getString(16));
-                    serviceProviderDO.setDoSignResponse(resultSet.getBoolean(17));
-                    serviceProviderDO.setAssertionQueryRequestProfileEnabled(resultSet.getBoolean(18));
-                    serviceProviderDO.setSupportedAssertionQueryRequestTypes(resultSet.getString(19));
-                    serviceProviderDO.setEnableSAML2ArtifactBinding(resultSet.getBoolean(20));
-                    serviceProviderDO.setDoSignAssertions(resultSet.getBoolean(21));
-                    serviceProviderDO.setSamlECP(resultSet.getBoolean(22));
-                    serviceProviderDO.setRequestedClaims(
-                            Arrays.asList(resultSet.getString(23).split(",")));
-                    serviceProviderDO.setAttributeConsumingServiceIndex(resultSet.getString(24));
-                    serviceProviderDO.setRequestedAudiences(
-                            Arrays.asList(resultSet.getString(25).split(",")));
-                    serviceProviderDO.setRequestedRecipients(
-                            Arrays.asList(resultSet.getString(26).split(",")));
-                    serviceProviderDO.setEnableAttributesByDefault(resultSet.getBoolean(27));
-                    serviceProviderDO.setIdPInitSSOEnabled(resultSet.getBoolean(28));
-                    serviceProviderDO.setIdPInitSLOEnabled(resultSet.getBoolean(29));
-                    serviceProviderDO.setIdpInitSLOReturnToURLs(
-                            Arrays.asList(resultSet.getString(30).split(",")));
-                    serviceProviderDO.setDoEnableEncryptedAssertion(resultSet.getBoolean(31));
-                    serviceProviderDO.setDoValidateSignatureInRequests(resultSet.getBoolean(32));
-                    serviceProviderDO.setDoValidateSignatureInArtifactResolve(resultSet.getBoolean(33));
-                    serviceProviderDO.setIssuerQualifier(resultSet.getString(34));
-                    serviceProviderDO.setIdpEntityIDAlias(resultSet.getString(35));
+                    serviceProviderDO = resourceToObject(resultSet);
                 }
             }
         }
@@ -379,47 +359,7 @@ public class SAMLSSOServiceProviderDAOImpl implements SAMLSSOServiceProviderDAO 
             statement.setString(1, tenantUUID);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
-                    SAMLSSOServiceProviderDO serviceProviderDO = new SAMLSSOServiceProviderDO();
-                    serviceProviderDO.setIssuer(resultSet.getString(1));
-                    serviceProviderDO.setAssertionConsumerUrls(
-                            Arrays.asList(resultSet.getString(2).split(",")));
-                    serviceProviderDO.setDefaultAssertionConsumerUrl(resultSet.getString(3));
-                    serviceProviderDO.setCertAlias(resultSet.getString(4));
-                    serviceProviderDO.setLoginPageURL(resultSet.getString(5));
-                    serviceProviderDO.setNameIDFormat(resultSet.getString(6));
-                    serviceProviderDO.setSigningAlgorithmUri(resultSet.getString(7));
-                    serviceProviderDO.setDigestAlgorithmUri(resultSet.getString(8));
-                    serviceProviderDO.setAssertionEncryptionAlgorithmUri(resultSet.getString(9));
-                    serviceProviderDO.setKeyEncryptionAlgorithmUri(resultSet.getString(10));
-                    serviceProviderDO.setNameIdClaimUri(resultSet.getString(11));
-                    serviceProviderDO.setDoSingleLogout(resultSet.getBoolean(12));
-                    serviceProviderDO.setSloResponseURL(resultSet.getString(13));
-                    serviceProviderDO.setSloRequestURL(resultSet.getString(14));
-                    serviceProviderDO.setDoFrontChannelLogout(resultSet.getBoolean(15));
-                    serviceProviderDO.setFrontChannelLogoutBinding(resultSet.getString(16));
-                    serviceProviderDO.setDoSignResponse(resultSet.getBoolean(17));
-                    serviceProviderDO.setAssertionQueryRequestProfileEnabled(resultSet.getBoolean(18));
-                    serviceProviderDO.setSupportedAssertionQueryRequestTypes(resultSet.getString(19));
-                    serviceProviderDO.setEnableSAML2ArtifactBinding(resultSet.getBoolean(20));
-                    serviceProviderDO.setDoSignAssertions(resultSet.getBoolean(21));
-                    serviceProviderDO.setSamlECP(resultSet.getBoolean(22));
-                    serviceProviderDO.setRequestedClaims(
-                            Arrays.asList(resultSet.getString(23).split(",")));
-                    serviceProviderDO.setAttributeConsumingServiceIndex(resultSet.getString(24));
-                    serviceProviderDO.setRequestedAudiences(
-                            Arrays.asList(resultSet.getString(25).split(",")));
-                    serviceProviderDO.setRequestedRecipients(
-                            Arrays.asList(resultSet.getString(26).split(",")));
-                    serviceProviderDO.setEnableAttributesByDefault(resultSet.getBoolean(27));
-                    serviceProviderDO.setIdPInitSSOEnabled(resultSet.getBoolean(28));
-                    serviceProviderDO.setIdPInitSLOEnabled(resultSet.getBoolean(29));
-                    serviceProviderDO.setIdpInitSLOReturnToURLs(
-                            Arrays.asList(resultSet.getString(30).split(",")));
-                    serviceProviderDO.setDoEnableEncryptedAssertion(resultSet.getBoolean(31));
-                    serviceProviderDO.setDoValidateSignatureInRequests(resultSet.getBoolean(32));
-                    serviceProviderDO.setDoValidateSignatureInArtifactResolve(resultSet.getBoolean(33));
-                    serviceProviderDO.setIssuerQualifier(resultSet.getString(34));
-                    serviceProviderDO.setIdpEntityIDAlias(resultSet.getString(35));
+                    SAMLSSOServiceProviderDO serviceProviderDO = resourceToObject(resultSet);
                     serviceProvidersList.add(serviceProviderDO);
                 }
             }
@@ -435,6 +375,80 @@ public class SAMLSSOServiceProviderDAOImpl implements SAMLSSOServiceProviderDAO 
             statement.setString(2, tenantUUID);
             statement.executeUpdate();
         }
+    }
+
+    private SAMLSSOServiceProviderDO resourceToObject(ResultSet resultSet) throws  SQLException {
+
+        SAMLSSOServiceProviderDO serviceProviderDO = new SAMLSSOServiceProviderDO();
+
+        serviceProviderDO.setIssuer(resultSet.getString(1));
+        serviceProviderDO.setAssertionConsumerUrls(stringToList(resultSet.getString(2)));
+        serviceProviderDO.setDefaultAssertionConsumerUrl(resultSet.getString(3));
+        serviceProviderDO.setCertAlias(resultSet.getString(4));
+        serviceProviderDO.setLoginPageURL(resultSet.getString(5));
+
+        serviceProviderDO.setNameIDFormat(getStringIfNotBlank(resultSet.getString(6)));
+        serviceProviderDO.setSigningAlgorithmUri(getStringIfNotBlank(resultSet.getString(7)));
+        serviceProviderDO.setDigestAlgorithmUri(getStringIfNotBlank(resultSet.getString(8)));
+        serviceProviderDO.setAssertionEncryptionAlgorithmUri(getStringIfNotBlank(resultSet.getString(9)));
+        serviceProviderDO.setKeyEncryptionAlgorithmUri(getStringIfNotBlank(resultSet.getString(10)));
+
+        boolean enableClaimedNameIdClaimedUri = resultSet.getString(11) != null
+                && resultSet.getString(11).trim().length() > 0;
+        if (enableClaimedNameIdClaimedUri) {
+            serviceProviderDO.setNameIdClaimUri(resultSet.getString(11));
+        }
+
+        serviceProviderDO.setDoSingleLogout(resultSet.getBoolean(12));
+
+        if (serviceProviderDO.isDoSingleLogout()) {
+            serviceProviderDO.setSloResponseURL(resultSet.getString(13));
+            serviceProviderDO.setSloRequestURL(resultSet.getString(14));
+            serviceProviderDO.setDoFrontChannelLogout(resultSet.getBoolean(15));
+            // Check front channel logout enable.
+            if (serviceProviderDO.isDoFrontChannelLogout()) {
+                if (resultSet.getString(16) != null) {
+                    serviceProviderDO.setFrontChannelLogoutBinding(resultSet.getString(16));
+                } else {
+                    // Default is redirect-binding.
+                    serviceProviderDO.setFrontChannelLogoutBinding(IdentityRegistryResources
+                            .DEFAULT_FRONT_CHANNEL_LOGOUT_BINDING);
+                }
+            }
+        }
+
+        serviceProviderDO.setDoSignResponse(resultSet.getBoolean(17));
+        serviceProviderDO.setAssertionQueryRequestProfileEnabled(resultSet.getBoolean(18));
+        serviceProviderDO.setSupportedAssertionQueryRequestTypes(getStringIfNotBlank(resultSet.getString(19)));
+        serviceProviderDO.setEnableSAML2ArtifactBinding(resultSet.getBoolean(20));
+        serviceProviderDO.setDoSignAssertions(resultSet.getBoolean(21));
+        serviceProviderDO.setSamlECP(resultSet.getBoolean(22));
+        serviceProviderDO.setRequestedClaims(stringToList(resultSet.getString(23)));
+
+        if (resultSet.getString(24) != null) {
+            serviceProviderDO.setAttributeConsumingServiceIndex(resultSet.getString(24));
+        } else {
+            // Specific DB's (like oracle) returns empty strings as null.
+            serviceProviderDO.setAttributeConsumingServiceIndex("");
+        }
+
+        serviceProviderDO.setRequestedAudiences(stringToList(resultSet.getString(25)));
+        serviceProviderDO.setRequestedRecipients(stringToList(resultSet.getString(26)));
+        serviceProviderDO.setEnableAttributesByDefault(resultSet.getBoolean(27));
+        serviceProviderDO.setIdPInitSSOEnabled(resultSet.getBoolean(28));
+
+        serviceProviderDO.setIdPInitSLOEnabled(resultSet.getBoolean(29));
+        if (serviceProviderDO.isIdPInitSLOEnabled()) {
+            serviceProviderDO.setIdpInitSLOReturnToURLs(stringToList(resultSet.getString(30)));
+        }
+
+        serviceProviderDO.setDoEnableEncryptedAssertion(resultSet.getBoolean(31));
+        serviceProviderDO.setDoValidateSignatureInRequests(resultSet.getBoolean(32));
+        serviceProviderDO.setDoValidateSignatureInArtifactResolve(resultSet.getBoolean(33));
+        serviceProviderDO.setIssuerQualifier(getStringIfNotBlank(resultSet.getString(34)));
+        serviceProviderDO.setIdpEntityIDAlias(getStringIfNotBlank(resultSet.getString(35)));
+
+        return serviceProviderDO;
     }
 
     /**
@@ -542,10 +556,23 @@ public class SAMLSSOServiceProviderDAOImpl implements SAMLSSOServiceProviderDAO 
         }
         if (tenantId != MultitenantConstants.INVALID_TENANT_ID) {
             Tenant tenant = IdentityTenantUtil.getTenant(tenantId);
-            if (tenant != null) {
-                return tenant.getTenantUniqueID();
-            }
+            return tenant.getTenantUniqueID();
         }
         return null;
+    }
+
+    private String getStringIfNotBlank(String string) {
+
+        return StringUtils.isNotBlank(string) ? string : null;
+    }
+
+    private String listToString(List<String> list) {
+
+        return CollectionUtils.isNotEmpty(list) ? String.join(",", list) : null;
+    }
+
+    private List<String> stringToList(String string) {
+
+        return StringUtils.isNotBlank(string) ? Arrays.asList(string.split(",")) : null;
     }
 }
