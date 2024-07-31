@@ -21,12 +21,12 @@ package org.wso2.carbon.identity.core;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.core.util.CachedKeyStore;
 import org.wso2.carbon.core.util.KeyStoreManager;
 import org.wso2.carbon.user.api.Tenant;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.security.KeystoreUtils;
 
-import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
 /**
@@ -55,18 +55,17 @@ public class KeyStoreCertificateRetriever implements CertificateRetriever {
 
         KeyStoreManager keyStoreManager = KeyStoreManager.getInstance(tenant.getId());
 
-        KeyStore keyStore;
+        CachedKeyStore cachedKeyStore;
 
         try {
             if (tenant.getId() != MultitenantConstants.SUPER_TENANT_ID) {
                 // This is a tenant. So load the tenant key store.
-                keyStore = keyStoreManager.getKeyStore(KeystoreUtils.getKeyStoreFileLocation(tenant.getDomain()));
+                cachedKeyStore = keyStoreManager.getCachedKeyStore(KeystoreUtils.getKeyStoreFileLocation(tenant.getDomain()));
             } else {
                 // This is the super tenant. So load the primary key store.
-                keyStore = keyStoreManager.getPrimaryKeyStore();
+                cachedKeyStore = keyStoreManager.getCachedPrimaryKeyStore();
             }
-            X509Certificate certificate = (X509Certificate) keyStore.getCertificate(certificateId);
-            return certificate;
+            return (X509Certificate) cachedKeyStore.getCertificate(certificateId);
         } catch (Exception e) {
             String errorMsg = String.format("Error occurred while retrieving the certificate for the alias '%s' " +
                     "of the tenant domain '%s'.", certificateId, tenant.getDomain());

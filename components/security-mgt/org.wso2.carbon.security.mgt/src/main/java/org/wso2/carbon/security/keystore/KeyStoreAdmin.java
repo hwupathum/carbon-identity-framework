@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.core.RegistryResources;
+import org.wso2.carbon.core.util.CachedKeyStore;
 import org.wso2.carbon.core.util.CryptoUtil;
 import org.wso2.carbon.core.util.KeyStoreManager;
 import org.wso2.carbon.core.util.KeyStoreUtil;
@@ -483,19 +484,19 @@ public class KeyStoreAdmin {
                 throw new Exception("keystore name cannot be null");
             }
 
-            KeyStore keyStore;
+            CachedKeyStore cachedKeyStore;
             String keyStoreType;
             String privateKeyPassword = null;
             if (KeyStoreUtil.isPrimaryStore(keyStoreName)) {
                 KeyStoreManager keyMan = KeyStoreManager.getInstance(tenantId);
-                keyStore = keyMan.getPrimaryKeyStore();
+                cachedKeyStore = keyMan.getCachedPrimaryKeyStore();
                 ServerConfiguration serverConfig = ServerConfiguration.getInstance();
                 keyStoreType = serverConfig
                         .getFirstProperty(RegistryResources.SecurityManagement.SERVER_PRIMARY_KEYSTORE_TYPE);
                 privateKeyPassword = serverConfig
                         .getFirstProperty(RegistryResources.SecurityManagement.SERVER_PRIVATE_KEY_PASSWORD);
             } else if (isTrustStore(keyStoreName)) {
-                keyStore = getTrustStore();
+                cachedKeyStore = new CachedKeyStore(getTrustStore());
                 ServerConfiguration serverConfig = ServerConfiguration.getInstance();
                 keyStoreType = serverConfig.getFirstProperty(SERVER_TRUSTSTORE_TYPE);
                 privateKeyPassword = serverConfig.getFirstProperty(SERVER_TRUSTSTORE_PASSWORD);
@@ -505,7 +506,7 @@ public class KeyStoreAdmin {
                     throw new SecurityConfigException("Key Store not found");
                 }
                 Resource resource = registry.get(path);
-                keyStore = getKeyStore(keyStoreName);
+                cachedKeyStore = new CachedKeyStore(getKeyStore(keyStoreName));
                 keyStoreType = resource.getProperty(SecurityConstants.PROP_TYPE);
 
                 String encpass = resource.getProperty(SecurityConstants.PROP_PRIVATE_KEY_PASS);
@@ -515,14 +516,14 @@ public class KeyStoreAdmin {
                 }
             }
             // Fill the information about the certificates
-            Enumeration<String> aliases = keyStore.aliases();
+            Enumeration<String> aliases = cachedKeyStore.getKeyStore().aliases();
             List<org.wso2.carbon.security.keystore.service.CertData> certDataList = new ArrayList<>();
             Format formatter = new SimpleDateFormat("dd/MM/yyyy");
 
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
-                if (keyStore.isCertificateEntry(alias)) {
-                    X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
+                if (cachedKeyStore.getKeyStore().isCertificateEntry(alias)) {
+                    X509Certificate cert = (X509Certificate) cachedKeyStore.getCertificate(alias);
                     certDataList.add(fillCertData(cert, alias, formatter));
                 }
             }
@@ -536,14 +537,14 @@ public class KeyStoreAdmin {
             keyStoreData.setCerts(certs);
             keyStoreData.setKeyStoreType(keyStoreType);
 
-            aliases = keyStore.aliases();
+            aliases = cachedKeyStore.getKeyStore().aliases();
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
                 // There be only one entry in WSAS related keystores
-                if (keyStore.isKeyEntry(alias)) {
-                    X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
+                if (cachedKeyStore.getKeyStore().isKeyEntry(alias)) {
+                    X509Certificate cert = (X509Certificate) cachedKeyStore.getCertificate(alias);
                     keyStoreData.setKey(fillCertData(cert, alias, formatter));
-                    PrivateKey key = (PrivateKey) keyStore.getKey(alias, privateKeyPassword
+                    PrivateKey key = (PrivateKey) cachedKeyStore.getKey(alias, privateKeyPassword
                             .toCharArray());
                     String pemKey;
                     pemKey = "-----BEGIN PRIVATE KEY-----\n";
@@ -566,7 +567,6 @@ public class KeyStoreAdmin {
 
     public Key getPrivateKey(String alias, boolean isSuperTenant) throws SecurityConfigException {
         KeyStoreData[] keystores = getKeyStores(isSuperTenant);
-        KeyStore keyStore = null;
         String privateKeyPassowrd = null;
 
         try {
@@ -574,7 +574,7 @@ public class KeyStoreAdmin {
             for (int i = 0; i < keystores.length; i++) {
                 if (KeyStoreUtil.isPrimaryStore(keystores[i].getKeyStoreName())) {
                     KeyStoreManager keyMan = KeyStoreManager.getInstance(tenantId);
-                    keyStore = keyMan.getPrimaryKeyStore();
+                    CachedKeyStore keyStore = keyMan.getCachedPrimaryKeyStore();
                     ServerConfiguration serverConfig = ServerConfiguration.getInstance();
                     privateKeyPassowrd = serverConfig
                             .getFirstProperty(RegistryResources.SecurityManagement.SERVER_PRIVATE_KEY_PASSWORD);
@@ -737,7 +737,7 @@ public class KeyStoreAdmin {
 
         try {
             // Get keystore.
-            KeyStore keyStore = getKeyStore(tenantId, keyStoreName);
+            CachedKeyStore keyStore = getCachedKeyStore(tenantId, keyStoreName);
             // Get keystore type.
             String keyStoreType = getKeyStoreType(keyStoreName);
 
@@ -785,7 +785,7 @@ public class KeyStoreAdmin {
 
         try {
             // Get keystore.
-            KeyStore keyStore = getKeyStore(tenantId, keyStoreName);
+            CachedKeyStore keyStore = getCachedKeyStore(tenantId, keyStoreName);
             // Get keystore type.
             String keyStoreType = getKeyStoreType(keyStoreName);
 
@@ -811,18 +811,18 @@ public class KeyStoreAdmin {
      * @return
      * @throws Exception
      */
-    private KeyStore getKeyStore(int tenantId, String keyStoreName) throws Exception {
+    private CachedKeyStore getCachedKeyStore(int tenantId, String keyStoreName) throws Exception {
     
-        KeyStore keyStore;
+        CachedKeyStore cachedKeyStore;
         if (KeyStoreUtil.isPrimaryStore(keyStoreName)) {
             KeyStoreManager keyStoreManager = KeyStoreManager.getInstance(tenantId);
-            keyStore = keyStoreManager.getPrimaryKeyStore();
+            cachedKeyStore = keyStoreManager.getCachedPrimaryKeyStore();
         } else if (isTrustStore(keyStoreName)) {
-            keyStore = getTrustStore();
+            cachedKeyStore = new CachedKeyStore(getTrustStore());
         } else {
-            keyStore = getKeyStore(keyStoreName);
+            cachedKeyStore = new CachedKeyStore(getKeyStore(keyStoreName));
         }
-        return keyStore;
+        return cachedKeyStore;
     }
 
     /**
@@ -876,25 +876,25 @@ public class KeyStoreAdmin {
     }
 
     /**
-     * Get certificates related to alias from the keystore.
+     * Get certificates related to alias from the cached keystore.
      *
-     * @param keyStore Keystore
+     * @param cachedKeyStore Cached keystore
      * @return List of certificate data.
      * @throws KeyStoreException
      * @throws CertificateEncodingException
      */
-    private List<CertData> getCertificates(KeyStore keyStore)
+    private List<CertData> getCertificates(CachedKeyStore cachedKeyStore)
             throws KeyStoreException, CertificateEncodingException {
 
-        Enumeration<String> aliases = keyStore.aliases();
+        Enumeration<String> aliases = cachedKeyStore.getKeyStore().aliases();
         // Create lists for cert and key lists.
         List<CertData> certDataList = new ArrayList<>();
         Format formatter = new SimpleDateFormat("dd/MM/yyyy");
 
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
-            X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
-            if (keyStore.isCertificateEntry(alias)) {
+            X509Certificate cert = (X509Certificate) cachedKeyStore.getCertificate(alias);
+            if (cachedKeyStore.getKeyStore().isCertificateEntry(alias)) {
                 certDataList.add(fillCertData(cert, alias, formatter));
             }
         }
@@ -902,25 +902,25 @@ public class KeyStoreAdmin {
     }
 
     /**
-     * Get key certificates related to alias from the keystore.
+     * Get key certificates related to alias from the cached keystore.
      *
-     * @param keyStore Keystore
+     * @param cachedKeyStore Cached keystore
      * @return List of certificate data.
      * @throws KeyStoreException
      * @throws CertificateEncodingException
      */
-    private List<CertData> getKeyCertificates(KeyStore keyStore)
+    private List<CertData> getKeyCertificates(CachedKeyStore cachedKeyStore)
             throws KeyStoreException, CertificateEncodingException {
 
-        Enumeration<String> aliases = keyStore.aliases();
+        Enumeration<String> aliases = cachedKeyStore.getKeyStore().aliases();
         // Create lists for cert and key lists.
         List<CertData> certDataList = new ArrayList<>();
         Format formatter = new SimpleDateFormat("dd/MM/yyyy");
 
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
-            X509Certificate cert = (X509Certificate) keyStore.getCertificate(alias);
-            if (keyStore.isKeyEntry(alias)) {
+            X509Certificate cert = (X509Certificate) cachedKeyStore.getCertificate(alias);
+            if (cachedKeyStore.getKeyStore().isKeyEntry(alias)) {
                 certDataList.add(fillCertData(cert, alias, formatter));
             }
         }

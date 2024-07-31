@@ -24,6 +24,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.base.ServerConfiguration;
+import org.wso2.carbon.core.util.CachedKeyStore;
 import org.wso2.carbon.core.util.KeyStoreManager;
 import org.wso2.carbon.core.util.KeyStoreUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -87,7 +88,7 @@ public class KeyStoreAdminTest extends PowerMockIdentityBaseTest {
 
         mockStatic(KeyStoreManager.class);
         when(KeyStoreManager.getInstance(tenantID)).thenReturn(keyStoreManager);
-        when(keyStoreManager.getPrimaryKeyStore()).thenReturn(getKeyStoreFromFile("wso2carbon.jks", "wso2carbon"));
+        when(keyStoreManager.getCachedPrimaryKeyStore()).thenReturn(getCachedKeyStoreFromFile("wso2carbon.jks", "wso2carbon"));
 
         keyStoreAdmin = new KeyStoreAdmin(tenantID, registry);
         PaginatedKeyStoreData result = keyStoreAdmin.getPaginatedKeystoreInfo("wso2carbon.jks", 10);
@@ -103,6 +104,15 @@ public class KeyStoreAdminTest extends PowerMockIdentityBaseTest {
         KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
         keystore.load(file, password.toCharArray());
         return keystore;
+    }
+
+    private CachedKeyStore getCachedKeyStoreFromFile(String keystoreName, String password) throws Exception {
+
+        Path tenantKeystorePath = createPath(keystoreName);
+        FileInputStream file = new FileInputStream(tenantKeystorePath.toString());
+        KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keystore.load(file, password.toCharArray());
+        return new CachedKeyStore(keystore);
     }
 
     private Path createPath(String keystoreName) {
