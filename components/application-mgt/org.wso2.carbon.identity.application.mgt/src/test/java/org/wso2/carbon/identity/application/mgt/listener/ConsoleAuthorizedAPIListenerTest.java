@@ -56,7 +56,7 @@ public class ConsoleAuthorizedAPIListenerTest {
         applicationManagementService = mockStatic(ApplicationManagementService.class);
         loggerUtils = mockStatic(LoggerUtils.class);
 
-        loggerUtils.when(() -> LoggerUtils.triggerAuditLogEvent(any(), anyBoolean()))
+        loggerUtils.when(() -> LoggerUtils.triggerAuditLogEvent(any()))
                 .thenAnswer(inv -> null);
 
         consoleAuthorizedAPIListener = new ConsoleAuthorizedAPIListener();
