@@ -41,8 +41,13 @@ import org.wso2.carbon.identity.application.authentication.framework.util.Framew
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authentication.framework.util.SessionMgtConstants;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
+import org.wso2.carbon.identity.application.common.model.FederatedAuthenticatorConfig;
+import org.wso2.carbon.identity.application.common.model.IdentityProvider;
+import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
 import org.wso2.carbon.identity.application.common.model.User;
+import org.wso2.carbon.identity.application.common.util.IdentityApplicationConstants;
+import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
 import org.wso2.carbon.identity.application.mgt.ApplicationManagementService;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.core.model.ExpressionNode;
@@ -307,10 +312,11 @@ public class UserSessionManagementServiceImpl implements UserSessionManagementSe
             throw handleSessionManagementClientException(ERROR_CODE_INVALID_USER, null);
         }
         String userIdToSearch = userId;
+        String tenantDomain = CarbonContext.getThreadLocalCarbonContext().getTenantDomain();
 
         // First check whether a federated association exists for the userId.
         try {
-            int tenantId = getTenantId(CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+            int tenantId = getTenantId(tenantDomain);
             Map<SessionMgtConstants.AuthSessionUserKeys, String> authSessionUserMap =
                     getAuthSessionUserMapFromFedAssociationMapping(tenantId, userId);
             if (authSessionUserMap != null && !authSessionUserMap.isEmpty()) {
@@ -330,6 +336,25 @@ public class UserSessionManagementServiceImpl implements UserSessionManagementSe
 
         boolean isSessionPreservingAtPasswordUpdateEnabled =
                 Boolean.parseBoolean(IdentityUtil.getProperty(PRESERVE_LOGGED_IN_SESSION_AT_PASSWORD_UPDATE));
+
+        try {
+            IdentityProvider residentIdp = getIDPManagementService().getResidentIdP(tenantDomain);
+            FederatedAuthenticatorConfig oidcFederatedAuthConfig = IdentityApplicationManagementUtil
+                    .getFederatedAuthenticator(residentIdp.getFederatedAuthenticatorConfigs(),
+                            IdentityApplicationConstants.Authenticator.OIDC.NAME);
+            if (oidcFederatedAuthConfig != null) {
+                Property preserveSessionAtPwUpdate = IdentityApplicationManagementUtil.getProperty(
+                        oidcFederatedAuthConfig.getProperties(),
+                        IdentityApplicationConstants.Authenticator.OIDC.PRESERVE_SESSION_AT_PASSWORD_UPDATE);
+                if (preserveSessionAtPwUpdate != null) {
+                    isSessionPreservingAtPasswordUpdateEnabled =
+                            Boolean.parseBoolean(preserveSessionAtPwUpdate.getValue());
+                }
+            }
+        } catch (UserSessionException | IdentityProviderManagementException e) {
+            log.debug("Error occurred while retrieving resident IDP");
+        }
+
         String currentSessionId = "";
         boolean isSessionTerminationSkipped = false;
         if (isSessionPreservingAtPasswordUpdateEnabled) {

@@ -152,6 +152,8 @@ public class IdPManagementDAO {
             = "OnDemandConfig.OnInitialUse.EnableSMSOTPPasswordRecoveryIfConnectorEnabled";
     private static final String ENABLE_SMS_USERNAME_RECOVERY_IF_CONNECTOR_ENABLED
             = "OnDemandConfig.OnInitialUse.EnableSMSUsernameRecoveryIfConnectorEnabled";
+    private static final String PRESERVE_LOGGED_IN_SESSION_AT_PASSWORD_UPDATE =
+            "PasswordUpdate.PreserveLoggedInSession";
 
     /**
      * @param dbConnection
@@ -2764,6 +2766,7 @@ public class IdPManagementDAO {
         String oAuth2DCREPUrlV2;
         String oAuth2JWKSPageV2;
         String oIDCDiscoveryEPUrlV2;
+        String preserveLoggedInSessionAtPwUpdate;
 
         openIdUrl = IdentityUtil.getProperty(IdentityConstants.ServerConfig.OPENID_SERVER_URL);
         oauth1RequestTokenUrl = IdentityUtil.getProperty(IdentityConstants.OAuth.OAUTH1_REQUEST_TOKEN_URL);
@@ -2802,6 +2805,7 @@ public class IdPManagementDAO {
         oAuth2DCREPUrlV2 = IdentityUtil.getProperty(IdentityConstants.OAuth.OAUTH2_DCR_EP_URL_V2);
         oAuth2JWKSPageV2 = IdentityUtil.getProperty(IdentityConstants.OAuth.OAUTH2_JWKS_EP_URL_V2);
         oIDCDiscoveryEPUrlV2 = IdentityUtil.getProperty(IdentityConstants.OAuth.OIDC_DISCOVERY_EP_URL_V2);
+        preserveLoggedInSessionAtPwUpdate = IdentityUtil.getProperty(PRESERVE_LOGGED_IN_SESSION_AT_PASSWORD_UPDATE);
 
         if (StringUtils.isBlank(openIdUrl)) {
             openIdUrl = IdentityUtil.getServerURL(IdentityConstants.OpenId.OPENID, true, true);
@@ -3082,6 +3086,16 @@ public class IdPManagementDAO {
         Property discoveryUrlProp = resolveFedAuthnProperty(oIDCDiscoveryEPUrl, oidcFedAuthn,
                 IdentityApplicationConstants.Authenticator.OIDC.OIDC_DISCOVERY_EP_URL);
         propertiesList.add(discoveryUrlProp);
+
+        Property preserveSessionAtPwUpdate = IdentityApplicationManagementUtil.getProperty(oidcFedAuthn.getProperties(),
+                IdentityApplicationConstants.Authenticator.OIDC.PRESERVE_SESSION_AT_PASSWORD_UPDATE);
+        if (preserveSessionAtPwUpdate == null) {
+            preserveSessionAtPwUpdate = new Property();
+            preserveSessionAtPwUpdate.setName(
+                    IdentityApplicationConstants.Authenticator.OIDC.PRESERVE_SESSION_AT_PASSWORD_UPDATE);
+            preserveSessionAtPwUpdate.setValue(preserveLoggedInSessionAtPwUpdate);
+        }
+        propertiesList.add(preserveSessionAtPwUpdate);
 
         oidcFedAuthn.setProperties(propertiesList.toArray(new Property[0]));
         fedAuthnConfigs.add(oidcFedAuthn);

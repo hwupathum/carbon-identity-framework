@@ -259,6 +259,8 @@ public class IdentityApplicationConstants {
             public static final String QUERY_PARAMS = "commonAuthQueryParams";
             public static final String IS_PKCE_ENABLED = "IsPKCEEnabled";
             public static final Object IS_PKCE_ENABLED_PARAM_NAME = "oidcPKCEEnabled";
+            public static final String PRESERVE_SESSION_AT_PASSWORD_UPDATE = "preserveSessionAtPasswordUpdate";
+
         }
 
         /**
