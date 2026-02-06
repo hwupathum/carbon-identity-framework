@@ -339,20 +339,23 @@ public class UserSessionManagementServiceImpl implements UserSessionManagementSe
 
         try {
             IdentityProvider residentIdp = getIDPManagementService().getResidentIdP(tenantDomain);
-            FederatedAuthenticatorConfig oidcFederatedAuthConfig = IdentityApplicationManagementUtil
-                    .getFederatedAuthenticator(residentIdp.getFederatedAuthenticatorConfigs(),
-                            IdentityApplicationConstants.Authenticator.OIDC.NAME);
-            if (oidcFederatedAuthConfig != null) {
-                Property preserveSessionAtPwUpdate = IdentityApplicationManagementUtil.getProperty(
-                        oidcFederatedAuthConfig.getProperties(),
-                        IdentityApplicationConstants.Authenticator.OIDC.PRESERVE_SESSION_AT_PASSWORD_UPDATE);
-                if (preserveSessionAtPwUpdate != null) {
-                    isSessionPreservingAtPasswordUpdateEnabled =
-                            Boolean.parseBoolean(preserveSessionAtPwUpdate.getValue());
+            if (residentIdp != null) {
+                FederatedAuthenticatorConfig oidcFederatedAuthConfig = IdentityApplicationManagementUtil
+                        .getFederatedAuthenticator(residentIdp.getFederatedAuthenticatorConfigs(),
+                                IdentityApplicationConstants.Authenticator.OIDC.NAME);
+                if (oidcFederatedAuthConfig != null) {
+                    Property preserveSessionAtPwUpdate = IdentityApplicationManagementUtil.getProperty(
+                            oidcFederatedAuthConfig.getProperties(),
+                            IdentityApplicationConstants.Authenticator.OIDC.PRESERVE_SESSION_AT_PASSWORD_UPDATE);
+                    if (preserveSessionAtPwUpdate != null) {
+                        isSessionPreservingAtPasswordUpdateEnabled =
+                                Boolean.parseBoolean(preserveSessionAtPwUpdate.getValue());
+                        log.debug("Using tenant level config for session preserving at password updated enabled");
+                    }
                 }
             }
         } catch (UserSessionException | IdentityProviderManagementException e) {
-            log.debug("Error occurred while retrieving resident IDP");
+            log.warn("Error occurred while retrieving resident IDP", e);
         }
 
         String currentSessionId = "";

@@ -24,18 +24,28 @@ import org.mockito.MockedStatic;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.context.SessionContext;
 import org.wso2.carbon.identity.application.authentication.framework.dao.impl.UserSessionDAOImpl;
 import org.wso2.carbon.identity.application.authentication.framework.internal.FrameworkServiceDataHolder;
+import org.wso2.carbon.identity.application.authentication.framework.internal.util.SessionEventPublishingUtil;
 import org.wso2.carbon.identity.application.authentication.framework.model.Application;
 import org.wso2.carbon.identity.application.authentication.framework.model.UserSession;
+import org.wso2.carbon.identity.application.authentication.framework.services.SessionManagementService;
 import org.wso2.carbon.identity.application.authentication.framework.store.UserSessionStore;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authentication.framework.util.SessionMgtConstants;
+import org.wso2.carbon.identity.application.common.model.FederatedAuthenticatorConfig;
+import org.wso2.carbon.identity.application.common.model.IdentityProvider;
+import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.application.common.util.IdentityApplicationConstants;
 import org.wso2.carbon.identity.common.testng.WithCarbonHome;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.user.profile.mgt.association.federation.FederatedAssociationManager;
+import org.wso2.carbon.idp.mgt.IdpManager;
+import org.wso2.carbon.user.api.UserRealm;
+import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
@@ -45,9 +55,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.openMocks;
 import static org.testng.Assert.assertEquals;
@@ -70,6 +87,12 @@ public class UserSessionManagementServiceImplTest {
     private TenantManager tenantManager;
 
     @Mock
+    private UserRealm userRealm;
+
+    @Mock
+    private AbstractUserStoreManager userStoreManager;
+
+    @Mock
     private UserSessionStore userSessionStore;
 
     @Mock
@@ -77,6 +100,15 @@ public class UserSessionManagementServiceImplTest {
 
     @Mock
     private SessionContext sessionContext;
+
+    @Mock
+    private SessionManagementService sessionManagementService;
+
+    @Mock
+    private IdpManager idpManager;
+
+    @Mock
+    private IdentityProvider identityProvider;
 
     private UserSessionManagementServiceImpl userSessionManagementService;
     private MockedStatic<FrameworkServiceDataHolder> frameworkServiceDataHolderMockedStatic;
@@ -106,8 +138,16 @@ public class UserSessionManagementServiceImplTest {
                 .thenReturn(frameworkServiceDataHolder);
         when(frameworkServiceDataHolder.getRealmService()).thenReturn(realmService);
         when(frameworkServiceDataHolder.getFederatedAssociationManager()).thenReturn(federatedAssociationManager);
+        when(frameworkServiceDataHolder.getIdentityProviderManager()).thenReturn(idpManager);
+        when(idpManager.getResidentIdP(TEST_TENANT_DOMAIN)).thenReturn(identityProvider);
         when(realmService.getTenantManager()).thenReturn(tenantManager);
         when(tenantManager.getTenantId(TEST_TENANT_DOMAIN)).thenReturn(TEST_TENANT_ID);
+        when(realmService.getTenantUserRealm(TEST_TENANT_ID)).thenReturn(userRealm);
+        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(userStoreManager.getUserNameFromUserID(anyString())).thenReturn("PRIMARY/test-user");
+        when(sessionContext.getProperties()).thenReturn(new HashMap<>());
+        when(federatedAssociationManager.getFederatedAssociationsOfUser(anyInt(), anyString(), anyString()))
+                .thenReturn(new ArrayList<>());
 
         userSessionManagementService = new UserSessionManagementServiceImpl();
         userSessionStoreMockedStatic.when(UserSessionStore::getInstance).thenReturn(userSessionStore);
@@ -258,5 +298,70 @@ public class UserSessionManagementServiceImplTest {
             frameworkUtilsMockedStatic.when(FrameworkUtils::getLoginTenantDomainFromContext).thenReturn("carbon.super");
             method.invoke(userSessionManagementService, userSessions, fedUserId);
         }
+    }
+
+    @Test
+    public void testTerminateSessionsByUserIdWithSessionPreservingEnabled() throws Exception {
+
+        List<String> sessionIds = new ArrayList<>();
+        sessionIds.add(TEST_SESSION_ID_1);
+        sessionIds.add(TEST_SESSION_ID_2);
+
+        try (MockedStatic<CarbonContext> carbonContextMockedStatic = mockStatic(CarbonContext.class);
+             MockedStatic<SessionEventPublishingUtil> sessionEventPublishingUtilMockedStatic =
+                     mockStatic(SessionEventPublishingUtil.class)) {
+
+            CarbonContext carbonContext = mock(CarbonContext.class);
+            carbonContextMockedStatic.when(CarbonContext::getThreadLocalCarbonContext).thenReturn(carbonContext);
+            when(carbonContext.getTenantDomain()).thenReturn(TEST_TENANT_DOMAIN);
+
+            identityUtilMockedStatic.when(() -> IdentityUtil.getProperty(
+                    FrameworkConstants.Config.PRESERVE_LOGGED_IN_SESSION_AT_PASSWORD_UPDATE)).thenReturn("true");
+
+            // Mock the IdentityProvider with OIDC federated authenticator config
+            FederatedAuthenticatorConfig oidcConfig = mock(FederatedAuthenticatorConfig.class);
+            when(oidcConfig.getName()).thenReturn(IdentityApplicationConstants.Authenticator.OIDC.NAME);
+            
+            Property preserveSessionProperty = mock(Property.class);
+            when(preserveSessionProperty.getName()).thenReturn(
+                    IdentityApplicationConstants.Authenticator.OIDC.PRESERVE_SESSION_AT_PASSWORD_UPDATE);
+            when(preserveSessionProperty.getValue()).thenReturn("true");
+            
+            Property[] properties = new Property[]{preserveSessionProperty};
+            when(oidcConfig.getProperties()).thenReturn(properties);
+            FederatedAuthenticatorConfig[] authConfigs = new FederatedAuthenticatorConfig[]{oidcConfig};
+            when(identityProvider.getFederatedAuthenticatorConfigs()).thenReturn(authConfigs);
+
+            Map<String, Object> threadLocalProperties = new HashMap<>();
+            threadLocalProperties.put(FrameworkConstants.CURRENT_SESSION_IDENTIFIER, TEST_SESSION_ID_1);
+            IdentityUtil.threadLocalProperties.set(threadLocalProperties);
+
+            List<UserSession> userSessions = new ArrayList<>();
+            userSessions.add(createTestUserSession(TEST_SESSION_ID_1, TEST_USER_ID));
+            userSessions.add(createTestUserSession(TEST_SESSION_ID_2, TEST_USER_ID));
+
+            UserSessionManagementServiceImpl service = spy(createSpyServiceWithSessionManagement());
+            doReturn(userSessions).when(service).getSessionsByUserId(TEST_USER_ID);
+
+            boolean result = service.terminateSessionsByUserId(TEST_USER_ID);
+
+            assertTrue(result);
+            // Only one session should be terminated (not the current one).
+            verify(sessionManagementService, times(1)).removeSession(TEST_SESSION_ID_2);
+            verify(userSessionStore, times(1)).removeTerminatedSessionRecords(anyList());
+        } finally {
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    private UserSessionManagementServiceImpl createSpyServiceWithSessionManagement() throws Exception {
+
+        UserSessionManagementServiceImpl service = new UserSessionManagementServiceImpl();
+        java.lang.reflect.Field sessionManagementServiceField =
+                UserSessionManagementServiceImpl.class.getDeclaredField("sessionManagementService");
+        sessionManagementServiceField.setAccessible(true);
+        sessionManagementServiceField.set(service, sessionManagementService);
+
+        return service;
     }
 }
