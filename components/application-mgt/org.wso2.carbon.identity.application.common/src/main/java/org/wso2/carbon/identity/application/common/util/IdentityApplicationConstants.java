@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2023, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2014-2026, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -260,6 +260,8 @@ public class IdentityApplicationConstants {
             public static final String IS_PKCE_ENABLED = "IsPKCEEnabled";
             public static final Object IS_PKCE_ENABLED_PARAM_NAME = "oidcPKCEEnabled";
             public static final String PRESERVE_SESSION_AT_PASSWORD_UPDATE = "preserveSessionAtPasswordUpdate";
+            public static final String ENABLE_JWT_SCOPE_AS_ARRAY = "enableJwtScopeAsArray";
+            public static final String ENABLE_JWT_SCOPE_AS_ARRAY_DEFAULT = "false";
 
         }
 
